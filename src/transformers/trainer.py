@@ -5,6 +5,7 @@ import os
 import random
 import re
 import shutil
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple
@@ -464,7 +465,7 @@ class Trainer:
                 epoch_iterator = tqdm(train_dataloader, desc="Iteration", disable=not self.is_local_master())
 
             for step, inputs in enumerate(epoch_iterator):
-
+                start = time.time()
                 # Skip past any already trained steps if resuming training
                 if steps_trained_in_current_epoch > 0:
                     steps_trained_in_current_epoch -= 1
@@ -532,7 +533,8 @@ class Trainer:
                         elif self.is_world_master():
                             torch.save(optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
                             torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
-
+                end = time.time()
+                logger.info("  Iteration time: " + str(end-start))
                 if self.args.max_steps > 0 and self.global_step > self.args.max_steps:
                     epoch_iterator.close()
                     break
