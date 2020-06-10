@@ -86,7 +86,6 @@ class ModuleUtilsMixin:
             import psutil
         except (ImportError):
             raise ImportError("You need to install psutil (pip install psutil) to use memory tracing.")
-
         process = psutil.Process(os.getpid())
         mem = process.memory_info()
         module.mem_rss_post_forward = mem.rss
@@ -94,19 +93,17 @@ class ModuleUtilsMixin:
         module.mem_rss_diff = mem_rss_diff + (module.mem_rss_diff if hasattr(module, "mem_rss_diff") else 0)
         return None
 
+    #def _get_gpu_mem(synchronize=True, empty_cache=True):
+    #    return torch.cuda.memory_allocated(), torch.cuda.memory_cached()
 
-    def _get_gpu_mem(synchronize=True, empty_cache=True):
-        return torch.cuda.memory_allocated(), torch.cuda.memory_cached()
-
-
-    def _generate_mem_hook(handle_ref, mem, idx, hook_type, exp):
+    def _generate_mem_hook(module, handle_ref, mem, idx, hook_type, exp):
         def hook(self, *args):
-            mem_all, mem_cached = self._get_gpu_mem()
+            mem_all, mem_cached = torch.cuda.memory_allocated(), torch.cuda.memory_cached() #self._get_gpu_mem()
             torch.cuda.synchronize()
-            # print(
-            #     f"{hook_type} {time.time()} {type(self).__name__} : mem_all {mem_all}, mem_cached {mem_cached}, active_bytes.all current: {torch.cuda.memory_stats()['active_bytes.all.current']}, allocated: {torch.cuda.memory_stats()['active_bytes.all.allocated']}, allocated_bytes.all current: {torch.cuda.memory_stats()['allocated_bytes.all.current']}, allocated: {torch.cuda.memory_stats()['allocated_bytes.all.allocated']}")
+            logger.info("{} {} {} {}".format(hook_type, time.time(), mem_all, mem_cached))
+            #logger.info(f"{hook_type} {time.time()} {type(self).__name__} : mem_all {mem_all}, mem_cached {mem_cached}, active_bytes.all current: {torch.cuda.memory_stats()['active_bytes.all.current']}, allocated: {torch.cuda.memory_stats()['active_bytes.all.allocated']}, allocated_bytes.all current: {torch.cuda.memory_stats()['allocated_bytes.all.current']}, allocated: {torch.cuda.memory_stats()['allocated_bytes.all.allocated']}")
             torch.cuda.empty_cache()
-
+            #return None
         return hook
 
     def add_memory_hooks(self):
